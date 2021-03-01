@@ -1,15 +1,79 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "slide-link",
   "pluginType": "platform",
   "singular": true,
   "schema": {
     "type": "object",
+    "useLocal": true,
     "properties": {
       "name": {
         "title": "Name",
         "type": "string",
         "required": true,
-        "default": "Example Dynamic Platform"
+        "default": "Slide Link"
+      },
+      "mode": {
+        "title": "Mode",
+        "type": "string",
+        "default": "local",
+        "oneOf": [
+          { "title": "Local", "enum": ["local"] },
+          { "title": "Remote", "enum": ["remote"] }
+        ],
+        "required": true
+      },
+      "username": {
+        "title": "Username",
+        "type": "string",
+        "required": true,
+        "condition": {
+          "functionBody": "return model.mode === 'remote';"
+        }
+      },
+      "password": {
+        "title": "Password",
+        "type": "string",
+        "required": true,
+        "condition": {
+          "functionBody": "return model.mode === 'remote';"
+        }
+      },
+      "curtains": {
+        "type": "array",
+        "condition": {
+          "functionBody": "return model.mode === 'local';"
+        },
+        "items": {
+          "title": "Curtains",
+          "type": "object",
+          "properties": {
+            "ip": {
+              "title": "ip",
+              "type": "string",
+              "required": true
+            },
+            "code": {
+              "title": "code",
+              "type": "string",
+              "required": true
+            },
+            "poll_interval": {
+              "title": "poll_interval",
+              "type": "integer",
+              "required": false
+            },
+            "tolerance": {
+              "title": "tolerance",
+              "type": "integer",
+              "required": false
+            },
+            "closing_time": {
+              "title": "closing_time",
+              "type": "integer",
+              "required": false
+            }
+          }
+        }
       }
     }
   }
