@@ -5,7 +5,6 @@
 
 </p>
 
-
 # Homebridge Slide Link
 
 [![Downloads](https://img.shields.io/npm/dt/homebridge-slide-link)](https://www.npmjs.com/package/homebridge-slide-link)
