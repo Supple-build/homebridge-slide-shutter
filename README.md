@@ -1,7 +1,7 @@
 
 <p align="center">
 
-<img src="https://github.com/homebridge/branding/raw/master/logos/homebridge-wordmark-logo-vertical.png" width="150"> <img src="https://github.com/bramsmulders/homebridge-slide-link/raw/main/_assets/slide.png" width="150">
+<img src="https://github.com/bramsmulders/homebridge-slide-link/raw/main/_assets/header.png" width="286">
 
 </p>
 
