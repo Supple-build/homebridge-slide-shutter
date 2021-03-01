@@ -8,6 +8,11 @@
 
 # Homebridge Slide Link
 
-![npm](https://img.shields.io/npm/v/homebridge-slide-link)
+[![Downloads](https://img.shields.io/npm/dt/homebridge-slide-link)](https://www.npmjs.com/package/homebridge-slide-link)
+[![Version](https://img.shields.io/npm/v/homebridge-slide-link)](https://www.npmjs.com/package/homebridge-slide-link)
+
+[![GitHub issues](https://img.shields.io/github/issues/bramsmulders/homebridge-slide-link)](https://github.com/bramsmulders/homebridge-slide-link/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/bramsmulders/homebridge-slide-link)](https://github.com/bramsmulders/homebridge-slide-link/pulls)
+
 
 Homebridge plugin for Slide by Innovation in Motion.
