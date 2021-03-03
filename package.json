@@ -2,7 +2,7 @@
   "private": true,
   "displayName": "Slide Link",
   "name": "homebridge-slide-link",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Homebridge plugin for Slide by Innovation in Motion.",
   "license": "Apache-2.0",
   "repository": {

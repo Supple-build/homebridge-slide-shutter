@@ -15,10 +15,10 @@
       "mode": {
         "title": "Mode",
         "type": "string",
-        "default": "local",
+        "default": "remote",
         "oneOf": [
-          { "title": "Local", "enum": ["local"] },
-          { "title": "Remote", "enum": ["remote"] }
+          { "title": "Remote", "enum": ["remote"] },
+          { "title": "Local", "enum": ["local"] }
         ],
         "required": true
       },
@@ -38,13 +38,14 @@
           "functionBody": "return model.mode === 'remote';"
         }
       },
-      "curtains": {
+      "slides": {
+        "title": "Slides",
         "type": "array",
         "condition": {
           "functionBody": "return model.mode === 'local';"
         },
         "items": {
-          "title": "Curtains",
+          "title": "Curtain",
           "type": "object",
           "properties": {
             "ip": {
@@ -53,22 +54,22 @@
               "required": true
             },
             "code": {
-              "title": "code",
+              "title": "Code",
               "type": "string",
               "required": true
             },
-            "poll_interval": {
-              "title": "poll_interval",
+            "pollInterval": {
+              "title": "Poll Interval",
               "type": "integer",
               "required": false
             },
             "tolerance": {
-              "title": "tolerance",
+              "title": "Tolerance",
               "type": "integer",
               "required": false
             },
-            "closing_time": {
-              "title": "closing_time",
+            "closingTime": {
+              "title": "Closing Time",
               "type": "integer",
               "required": false
             }
