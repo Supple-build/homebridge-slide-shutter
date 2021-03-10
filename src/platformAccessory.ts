@@ -48,7 +48,7 @@ export class SlideAccesory {
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.service.setCharacteristic(
       this.platform.Characteristic.Name,
-      accessory.context.device.exampleDisplayName,
+      accessory.context.device.name,
     );
 
     // each service must implement at-minimum the "required characteristics" for the given service type

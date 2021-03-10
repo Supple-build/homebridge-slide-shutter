@@ -48,6 +48,11 @@
           "title": "Curtain",
           "type": "object",
           "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string",
+              "required": true
+            },
             "ip": {
               "title": "ip",
               "type": "string",

@@ -7,10 +7,10 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git://github.com/bramsmulders/homebridge-slide-link.git"
+    "url": "git://github.com/bram-is/homebridge-slide-link.git"
   },
   "bugs": {
-    "url": "https://github.com/bramsmulders/homebridge-slide-link/issues"
+    "url": "https://github.com/bram-is/homebridge-slide-link/issues"
   },
   "engines": {
     "node": ">=10.17.0",
