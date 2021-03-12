@@ -38,7 +38,7 @@
           "functionBody": "return model.mode === 'remote';"
         }
       },
-      "slides": {
+      "devices": {
         "title": "Slides",
         "type": "array",
         "condition": {

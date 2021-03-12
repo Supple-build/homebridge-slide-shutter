@@ -63,7 +63,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
     // or a user-defined array in the platform config.
 
     // @TODO: get slides from api
-    const devices: any = this.config.slides;
+    const devices: any = this.config.devices;
 
     // loop over the discovered devices and register each one if it has not already been registered
     for (const device of devices) {
