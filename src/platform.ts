@@ -11,11 +11,6 @@ import {
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { SlideAccesory } from './platformAccessory';
 
-/**
- * HomebridgePlatform
- * This class is the main constructor for your plugin, this is where you should
- * parse the user config and discover/register accessories with Homebridge.
- */
 export class SlidePlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
   public readonly Characteristic: typeof Characteristic = this.api.hap
@@ -24,20 +19,18 @@ export class SlidePlatform implements DynamicPlatformPlugin {
   // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
 
+  private mode;
+
   constructor(
     public readonly log: Logger,
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
+    this.mode = this.config.mode || 'local';
     this.log.debug('Finished initializing platform:', this.config.name);
 
-    // When this event is fired it means Homebridge has restored all cached accessories from disk.
-    // Dynamic Platform plugins should only register new accessories after this event was fired,
-    // in order to ensure they weren't added to homebridge already. This event can also be used
-    // to start discovery of new accessories.
     this.api.on('didFinishLaunching', () => {
       log.debug('Executed didFinishLaunching callback');
-      // run the method to discover / register your devices as accessories
       this.discoverDevices();
     });
   }
@@ -53,12 +46,18 @@ export class SlidePlatform implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
-  /**
-   * This is an example method showing how to register discovered accessories.
-   * Accessories must only be registered once, previously created accessories
-   * must not be registered again to prevent "duplicate UUID" errors.
-   */
   discoverDevices() {
+    if (this.mode === 'local') {
+      this.discoverLocalDevices();
+    } else {
+      this.discoverRemoteDevices();
+    }
+  }
+
+  /**
+   * Device discovery based on user entry `slides`
+   */
+  discoverLocalDevices() {
     // EXAMPLE ONLY
     // A real plugin you would discover accessories from the local network, cloud services
     // or a user-defined array in the platform config.
@@ -120,4 +119,14 @@ export class SlidePlatform implements DynamicPlatformPlugin {
       }
     }
   }
+
+  discoverRemoteDevices() {}
+
+  getRemoteAccessToken() {}
+
+  loginRemote() {}
+
+  getSlidesFromRemote() {}
+
+  request() {}
 }
