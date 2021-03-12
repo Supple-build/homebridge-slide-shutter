@@ -1,10 +1,7 @@
-import {
-  Service,
-  PlatformAccessory,
-  CharacteristicValue,
-  CharacteristicSetCallback,
-  CharacteristicGetCallback,
-} from 'homebridge';
+import { Service, PlatformAccessory, Logger } from 'homebridge';
+
+import request from 'request';
+import poll from 'poll';
 
 import { SlidePlatform } from './platform';
 
@@ -15,20 +12,30 @@ import { SlidePlatform } from './platform';
  */
 export class SlideAccesory {
   private service: Service;
+  private readonly characteristic;
 
-  /**
-   * These are just used to create a working example
-   * You should implement your own code to track the state of your accessory
-   */
-  private exampleStates = {
-    On: false,
-    Brightness: 100,
-  };
+  private readonly name: string;
+  private readonly ip: string;
+  private readonly code: string;
+  private isLikelyMoving;
+  private calibrationTime;
+  private tolerance;
+  private pollInterval;
 
   constructor(
     private readonly platform: SlidePlatform,
     private readonly accessory: PlatformAccessory,
+    public readonly log: Logger,
   ) {
+    this.characteristic = this.platform.Characteristic;
+    // extract name from config
+    this.name = accessory.context.device.name;
+    this.ip = accessory.context.device.ip;
+    this.code = accessory.context.device.code;
+    this.tolerance = accessory.context.device.tolerance || 7;
+    this.isLikelyMoving = false;
+    this.calibrationTime = (accessory.context.device.closingTime || 20) * 1000; // 20 seconds
+
     // set accessory information
     this.accessory
       .getService(this.platform.Service.AccessoryInformation)!
@@ -38,7 +45,7 @@ export class SlideAccesory {
       )
       .setCharacteristic(this.platform.Characteristic.Model, 'Slide');
 
-    // get the LightBulb service if it exists, otherwise create a new LightBulb service
+    // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
     // you can create multiple services for each accessory
     this.service =
       this.accessory.getService(this.platform.Service.WindowCovering) ||
@@ -48,11 +55,11 @@ export class SlideAccesory {
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.service.setCharacteristic(
       this.platform.Characteristic.Name,
-      accessory.context.device.name,
+      this.name,
     );
 
     // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/Lightbulb
+    // see https://developers.homebridge.io/#/service/WindowCovering
 
     // create handlers for required characteristics
     this.service
@@ -67,50 +74,281 @@ export class SlideAccesory {
       .getCharacteristic(this.platform.Characteristic.TargetPosition)
       .on('get', this.handleTargetPositionGet.bind(this))
       .on('set', this.handleTargetPositionSet.bind(this));
+
+    //setting initial position
+    this.getSlidePos((position) => {
+      if (this.calculateDifference(position, 100) <= this.tolerance) {
+        position = 100;
+      } else if (this.calculateDifference(position, 0) <= this.tolerance) {
+        position = 0;
+      }
+      this.service
+        .getCharacteristic(this.characteristic.TargetPosition)
+        .updateValue(position);
+
+      this.service
+        .getCharacteristic(this.characteristic.CurrentPosition)
+        .updateValue(position);
+    });
+
+    const pollInterval = this.pollInterval || 10;
+    poll(this.updateSlideInfo.bind(this), pollInterval * 1000);
+
+    log.info('Slide Curtain finished initializing!');
+  }
+
+  /**
+   * Calculates difference between two numbers
+   * @param first number
+   * @param second number
+   * @returns number
+   */
+  calculateDifference(first, second) {
+    let difference = first - second;
+    if (difference < 0) {
+      difference = difference * -1;
+    }
+    return difference;
+  }
+
+  /**
+   * Converts HomeKit position to Slide API capable value
+   * @param position number
+   * @returns number
+   */
+  homekitPositionToSlideAPI(position) {
+    let newPosition = 100 - position;
+    newPosition = newPosition / 100;
+    return Math.min(Math.max(newPosition, 0), 1);
+  }
+
+  /**
+   * Converts slide position to HomeKit capable value
+   * @param position number
+   * @returns number
+   */
+  slideAPIPositionToHomekit(position) {
+    let newPosition = position * 100;
+    newPosition = 100 - newPosition;
+    return Math.min(Math.max(newPosition, 0), 100);
+  }
+
+  /**
+   * Get current slide position
+   * @param callback function
+   */
+  getSlidePos(callback) {
+    request
+      .post(
+        'http://' + this.ip + '/rpc/Slide.GetInfo',
+        (error, response, body) => {
+          let currentPosition;
+
+          if (error || response.statusCode !== 200) {
+            if (error) {
+              this.log.info('error:', error);
+            }
+            // If no response available, return the current position in cache
+            currentPosition = this.service.getCharacteristic(
+              this.characteristic.CurrentPosition,
+            ).value;
+          } else {
+            currentPosition = this.slideAPIPositionToHomekit(
+              JSON.parse(body).pos,
+            );
+          }
+
+          this.log.debug('statusCode:', response && response.statusCode);
+          this.log.debug('body:', body);
+          callback(currentPosition);
+        },
+      )
+      .auth('user', this.code, false);
+  }
+
+  /**
+   * Update the slide information from the poll
+   */
+  updateSlideInfo() {
+    this.log.debug('Triggered update slide info from poll');
+    this.getSlidePos((position) => {
+      let targetPosition;
+      this.log.debug('likelyMoving', this.isLikelyMoving);
+
+      if (!this.isLikelyMoving) {
+        targetPosition = position;
+        if (this.calculateDifference(position, 100) <= this.tolerance) {
+          targetPosition = 100;
+        } else if (this.calculateDifference(position, 0) <= this.tolerance) {
+          targetPosition = 0;
+        }
+        this.service
+          .getCharacteristic(this.characteristic.TargetPosition)
+          .updateValue(targetPosition);
+      }
+
+      targetPosition = this.service.getCharacteristic(
+        this.characteristic.TargetPosition,
+      ).value;
+
+      const difference = this.calculateDifference(targetPosition, position);
+      this.log.debug(
+        'Difference between position and target position: ' + difference,
+      );
+      this.log.debug('Current target position: ' + targetPosition);
+      this.log.debug('Position from API: ' + position);
+
+      if (difference <= this.tolerance) {
+        position = targetPosition;
+      }
+
+      this.service
+        .getCharacteristic(this.characteristic.CurrentPosition)
+        .updateValue(position);
+
+      if (targetPosition === position) {
+        this.service
+          .getCharacteristic(this.characteristic.PositionState)
+          .updateValue(this.characteristic.PositionState.STOPPED);
+        // We have stopped so set the likely moving to false
+        this.isLikelyMoving = false;
+      } else if (targetPosition < position) {
+        this.service
+          .getCharacteristic(this.characteristic.PositionState)
+          .updateValue(this.characteristic.PositionState.DECREASING);
+      } else {
+        this.service
+          .getCharacteristic(this.characteristic.PositionState)
+          .updateValue(this.characteristic.PositionState.INCREASING);
+      }
+    });
   }
 
   /**
    * Handle requests to get the current value of the "Current Position" characteristic
    */
   handleCurrentPositionGet(callback) {
-    this.platform.log.debug('Triggered GET CurrentPosition');
+    this.log.debug('Triggered GET CurrentPosition');
+    this.getSlidePos((position) => {
+      let targetPosition;
 
-    // set this to a valid value for CurrentPosition
-    const currentValue = 1;
+      if (!this.isLikelyMoving) {
+        targetPosition = position;
+        if (this.calculateDifference(position, 100) <= this.tolerance) {
+          targetPosition = 100;
+        } else if (this.calculateDifference(position, 0) <= this.tolerance) {
+          targetPosition = 0;
+        }
+        this.service
+          .getCharacteristic(this.characteristic.TargetPosition)
+          .updateValue(targetPosition);
+      }
+      targetPosition = this.service.getCharacteristic(
+        this.characteristic.TargetPosition,
+      ).value;
 
-    callback(null, currentValue);
-  }
+      const difference = this.calculateDifference(targetPosition, position);
+      if (difference <= this.tolerance) {
+        position = targetPosition;
+      }
+      this.service
+        .getCharacteristic(this.characteristic.CurrentPosition)
+        .updateValue(position);
 
-  /**
-   * Handle requests to get the current value of the "Position State" characteristic
-   */
-  handlePositionStateGet(callback) {
-    this.platform.log.debug('Triggered GET PositionState');
-
-    // set this to a valid value for PositionState
-    const currentValue = 1;
-
-    callback(null, currentValue);
+      callback(null, position);
+    });
   }
 
   /**
    * Handle requests to get the current value of the "Target Position" characteristic
    */
   handleTargetPositionGet(callback) {
-    this.platform.log.debug('Triggered GET TargetPosition');
-
-    // set this to a valid value for TargetPosition
-    const currentValue = 1;
-
-    callback(null, currentValue);
+    this.log.debug('Triggered GET TargetPosition');
+    this.getSlidePos((position) => {
+      if (this.calculateDifference(position, 100) <= this.tolerance) {
+        position = 100;
+      } else if (this.calculateDifference(position, 0) <= this.tolerance) {
+        position = 0;
+      }
+      callback(null, position);
+    });
   }
 
   /**
    * Handle requests to set the "Target Position" characteristic
    */
-  handleTargetPositionSet(value, callback) {
-    this.platform.log.debug('Triggered SET TargetPosition:', value);
+  handleTargetPositionSet(targetPosition, callback) {
+    this.log.debug('Triggered SET TargetPosition:' + targetPosition);
 
-    callback(null);
+    const setPos = this.homekitPositionToSlideAPI(targetPosition);
+
+    request(
+      {
+        method: 'POST',
+        url: 'http://' + this.ip + '/rpc/Slide.SetPos',
+        json: true,
+        body: {
+          pos: setPos,
+        },
+      },
+      (error, response, body) => {
+        if (error || response.statusCode !== 200) {
+          if (error) {
+            this.log.info('error:', error);
+            return callback(error);
+          } else {
+            return callback(
+              new Error('statusCode:' + response && response.statusCode),
+            );
+          }
+        }
+        this.log.debug('statusCode:', response && response.statusCode);
+        this.log.debug('body:', body);
+
+        const currentPosition =
+          this.service.getCharacteristic(this.characteristic.CurrentPosition)
+            .value || targetPosition;
+
+        if (targetPosition === currentPosition) {
+          this.service
+            .getCharacteristic(this.characteristic.PositionState)
+            .updateValue(this.characteristic.PositionState.STOPPED);
+        } else if (targetPosition < currentPosition) {
+          this.service
+            .getCharacteristic(this.characteristic.PositionState)
+            .updateValue(this.characteristic.PositionState.DECREASING);
+        } else {
+          this.service
+            .getCharacteristic(this.characteristic.PositionState)
+            .updateValue(this.characteristic.PositionState.INCREASING);
+        }
+        this.service
+          .getCharacteristic(this.characteristic.TargetPosition)
+          .updateValue(targetPosition);
+        this.isLikelyMoving = true;
+        setTimeout(() => {
+          this.log.debug('Stopping the move from time-out');
+          this.isLikelyMoving = false;
+        }, this.calibrationTime + 1000);
+        poll(this.updateSlideInfo.bind(this), 3000, () => {
+          if (!this.isLikelyMoving) {
+            this.log.debug('Stopping the increased poll rate');
+          }
+          return !this.isLikelyMoving;
+        });
+        callback(null, targetPosition);
+      },
+    ).auth('user', this.code, false);
+  }
+
+  /**
+   * Handle requests to get the current value of the "Position State" characteristic
+   */
+  handlePositionStateGet(callback) {
+    this.log.debug('Triggered GET PositionState');
+    callback(
+      null,
+      this.service.getCharacteristic(this.characteristic.PositionState).value,
+    );
   }
 }
