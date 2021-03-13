@@ -207,7 +207,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
       }),
     };
 
-    const promise = new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       request(requestInfo, (error, response, responseBody) => {
         if (error) {
           this.log.error(error);
@@ -221,6 +221,5 @@ export class SlidePlatform implements DynamicPlatformPlugin {
         return resolve(responseBody);
       });
     });
-    return promise;
   }
 }
