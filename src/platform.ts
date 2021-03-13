@@ -8,6 +8,8 @@ import {
   Characteristic,
 } from 'homebridge';
 
+import request from 'request';
+
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { SlideAccesory } from './platformAccessory';
 
@@ -128,5 +130,63 @@ export class SlidePlatform implements DynamicPlatformPlugin {
 
   getSlidesFromRemote() {}
 
-  request() {}
+  request(
+    device,
+    method,
+    endPoint,
+    parameters: any = false,
+    accessToken: any = false,
+  ) {
+    if (endPoint.length > 0 && endPoint.charAt(0) !== '/') {
+      endPoint = '/' + endPoint;
+    }
+
+    const baseURL = device.ip
+      ? `http://${device.ip}`
+      : 'https://api.goslide.io/api';
+
+    const addParameters = method === 'POST' && parameters;
+
+    const requestInfo = {
+      uri: baseURL + endPoint,
+      method: method,
+      timeout: 6000,
+      headers: {
+        'User-Agent': 'homebridge-slide-link',
+      },
+      json: true,
+      ...(accessToken && {
+        auth: {
+          bearer: accessToken,
+          sendImmediately: true,
+        },
+      }),
+      ...(device.code && {
+        auth: {
+          username: 'user',
+          password: device.code,
+          sendImmediately: false,
+        },
+      }),
+      ...(addParameters && {
+        body: parameters,
+      }),
+    };
+
+    const promise = new Promise((resolve, reject) => {
+      request(requestInfo, (error, response, responseBody) => {
+        if (error) {
+          this.log.error(error);
+          return reject(error);
+        }
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          error = Error('Invalid response received: ' + response.statusCode);
+          this.log.error(error);
+          return reject(error);
+        }
+        return resolve(responseBody);
+      });
+    });
+    return promise;
+  }
 }

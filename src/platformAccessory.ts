@@ -76,7 +76,9 @@ export class SlideAccesory {
       .on('set', this.handleTargetPositionSet.bind(this));
 
     //setting initial position
-    this.getSlidePos((position) => {
+    this.getSlideInfo().then((slideInfo: any) => {
+      let position = this.slideAPIPositionToHomekit(slideInfo.pos);
+
       if (this.calculateDifference(position, 100) <= this.tolerance) {
         position = 100;
       } else if (this.calculateDifference(position, 0) <= this.tolerance) {
@@ -133,37 +135,12 @@ export class SlideAccesory {
     return Math.min(Math.max(newPosition, 0), 100);
   }
 
-  /**
-   * Get current slide position
-   * @param callback function
-   */
-  getSlidePos(callback) {
-    request
-      .post(
-        'http://' + this.ip + '/rpc/Slide.GetInfo',
-        (error, response, body) => {
-          let currentPosition;
-
-          if (error || response.statusCode !== 200) {
-            if (error) {
-              this.log.info('error:', error);
-            }
-            // If no response available, return the current position in cache
-            currentPosition = this.service.getCharacteristic(
-              this.characteristic.CurrentPosition,
-            ).value;
-          } else {
-            currentPosition = this.slideAPIPositionToHomekit(
-              JSON.parse(body).pos,
-            );
-          }
-
-          this.log.debug('statusCode:', response && response.statusCode);
-          this.log.debug('body:', body);
-          callback(currentPosition);
-        },
-      )
-      .auth('user', this.code, false);
+  getSlideInfo() {
+    return this.platform.request(
+      this.accessory.context.device,
+      'GET',
+      'rpc/Slide.GetInfo',
+    );
   }
 
   /**
@@ -171,7 +148,8 @@ export class SlideAccesory {
    */
   updateSlideInfo() {
     this.log.debug('Triggered update slide info from poll');
-    this.getSlidePos((position) => {
+    this.getSlideInfo().then((slideInfo: any) => {
+      let position = this.slideAPIPositionToHomekit(slideInfo.pos);
       let targetPosition;
       this.log.debug('likelyMoving', this.isLikelyMoving);
 
@@ -229,34 +207,39 @@ export class SlideAccesory {
    */
   handleCurrentPositionGet(callback) {
     this.log.debug('Triggered GET CurrentPosition');
-    this.getSlidePos((position) => {
-      let targetPosition;
+    this.getSlideInfo()
+      .then((slideInfo: any) => {
+        let position = this.slideAPIPositionToHomekit(slideInfo.pos);
+        let targetPosition;
 
-      if (!this.isLikelyMoving) {
-        targetPosition = position;
-        if (this.calculateDifference(position, 100) <= this.tolerance) {
-          targetPosition = 100;
-        } else if (this.calculateDifference(position, 0) <= this.tolerance) {
-          targetPosition = 0;
+        if (!this.isLikelyMoving) {
+          targetPosition = position;
+          if (this.calculateDifference(position, 100) <= this.tolerance) {
+            targetPosition = 100;
+          } else if (this.calculateDifference(position, 0) <= this.tolerance) {
+            targetPosition = 0;
+          }
+          this.service
+            .getCharacteristic(this.characteristic.TargetPosition)
+            .updateValue(targetPosition);
+        }
+        targetPosition = this.service.getCharacteristic(
+          this.characteristic.TargetPosition,
+        ).value;
+
+        const difference = this.calculateDifference(targetPosition, position);
+        if (difference <= this.tolerance) {
+          position = targetPosition;
         }
         this.service
-          .getCharacteristic(this.characteristic.TargetPosition)
-          .updateValue(targetPosition);
-      }
-      targetPosition = this.service.getCharacteristic(
-        this.characteristic.TargetPosition,
-      ).value;
+          .getCharacteristic(this.characteristic.CurrentPosition)
+          .updateValue(position);
 
-      const difference = this.calculateDifference(targetPosition, position);
-      if (difference <= this.tolerance) {
-        position = targetPosition;
-      }
-      this.service
-        .getCharacteristic(this.characteristic.CurrentPosition)
-        .updateValue(position);
-
-      callback(null, position);
-    });
+        callback(null, position);
+      })
+      .catch((error) => {
+        callback(error);
+      });
   }
 
   /**
@@ -264,14 +247,20 @@ export class SlideAccesory {
    */
   handleTargetPositionGet(callback) {
     this.log.debug('Triggered GET TargetPosition');
-    this.getSlidePos((position) => {
-      if (this.calculateDifference(position, 100) <= this.tolerance) {
-        position = 100;
-      } else if (this.calculateDifference(position, 0) <= this.tolerance) {
-        position = 0;
-      }
-      callback(null, position);
-    });
+    this.getSlideInfo()
+      .then((slideInfo: any) => {
+        let position = this.slideAPIPositionToHomekit(slideInfo.pos);
+
+        if (this.calculateDifference(position, 100) <= this.tolerance) {
+          position = 100;
+        } else if (this.calculateDifference(position, 0) <= this.tolerance) {
+          position = 0;
+        }
+        callback(null, position);
+      })
+      .catch((error) => {
+        callback(error);
+      });
   }
 
   /**
@@ -282,33 +271,14 @@ export class SlideAccesory {
 
     const setPos = this.homekitPositionToSlideAPI(targetPosition);
 
-    request(
-      {
-        method: 'POST',
-        url: 'http://' + this.ip + '/rpc/Slide.SetPos',
-        json: true,
-        body: {
-          pos: setPos,
-        },
-      },
-      (error, response, body) => {
-        if (error || response.statusCode !== 200) {
-          if (error) {
-            this.log.info('error:', error);
-            return callback(error);
-          } else {
-            return callback(
-              new Error('statusCode:' + response && response.statusCode),
-            );
-          }
-        }
-        this.log.debug('statusCode:', response && response.statusCode);
-        this.log.debug('body:', body);
-
+    this.platform
+      .request(this.accessory.context.device, 'POST', 'rpc/Slide.SetPos', {
+        pos: setPos,
+      })
+      .then((response) => {
         const currentPosition =
           this.service.getCharacteristic(this.characteristic.CurrentPosition)
             .value || targetPosition;
-
         if (targetPosition === currentPosition) {
           this.service
             .getCharacteristic(this.characteristic.PositionState)
@@ -337,8 +307,7 @@ export class SlideAccesory {
           return !this.isLikelyMoving;
         });
         callback(null, targetPosition);
-      },
-    ).auth('user', this.code, false);
+      });
   }
 
   /**
