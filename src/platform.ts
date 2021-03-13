@@ -20,8 +20,11 @@ export class SlidePlatform implements DynamicPlatformPlugin {
 
   // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
+  public accessToken;
 
   private mode;
+  private devices;
+  private loginPromise;
 
   constructor(
     public readonly log: Logger,
@@ -29,6 +32,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
     public readonly api: API,
   ) {
     this.mode = this.config.mode || 'local';
+    this.devices = this.config.devices || [];
     this.log.debug('Finished initializing platform:', this.config.name);
 
     this.api.on('didFinishLaunching', () => {
@@ -50,71 +54,61 @@ export class SlidePlatform implements DynamicPlatformPlugin {
 
   discoverDevices() {
     if (this.mode === 'local') {
-      this.discoverLocalDevices();
+      this.registerDevices(this.devices);
     } else {
       this.discoverRemoteDevices();
     }
   }
 
-  /**
-   * Device discovery based on user entry `slides`
-   */
-  discoverLocalDevices() {
-    // EXAMPLE ONLY
-    // A real plugin you would discover accessories from the local network, cloud services
-    // or a user-defined array in the platform config.
+  discoverRemoteDevices() {
+    this.getAccessToken().then(() => {
+      this.request(null, 'GET', 'slides/overview', null, this.accessToken).then(
+        (response: any) => {
+          const slides = response.slides;
+          if (slides) {
+            const devices: any = [];
+            slides.forEach((slideInfo: any) => {
+              devices.push({
+                name: slideInfo['device_name'],
+                id: slideInfo['id'],
+                device_id: slideInfo['device_id'],
+                ip: null,
+                code: null,
+              });
+            });
+            this.registerDevices(devices);
+          }
+        },
+      );
+    });
+  }
 
-    // @TODO: get slides from api
-    const devices: any = this.config.devices;
-
-    // loop over the discovered devices and register each one if it has not already been registered
+  registerDevices(devices: any) {
     for (const device of devices) {
-      // generate a unique id for the accessory this should be generated from
-      // something globally unique, but constant, for example, the device serial
-      // number or MAC address
-      const uuid = this.api.hap.uuid.generate(`${device.code}`);
+      const uuid = this.api.hap.uuid.generate(
+        `${device.code || device['device_id']}`,
+      );
 
-      // see if an accessory with the same uuid has already been registered and restored from
-      // the cached devices we stored in the `configureAccessory` method above
       const existingAccessory = this.accessories.find(
         (accessory) => accessory.UUID === uuid,
       );
 
       if (existingAccessory) {
-        // the accessory already exists
         this.log.info(
           'Restoring existing accessory from cache:',
           existingAccessory.displayName,
         );
 
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        // existingAccessory.context.device = device;
-        // this.api.updatePlatformAccessories([existingAccessory]);
-
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
         new SlideAccesory(this, existingAccessory, this.log);
-
-        // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, eg.:
-        // remove platform accessories when no longer present
-        // this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
-        // this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
       } else {
-        // the accessory does not yet exist, so we need to create it
         this.log.info('Adding new accessory:', device.name);
 
-        // create a new accessory
         const accessory = new this.api.platformAccessory(device.name, uuid);
 
-        // store a copy of the device object in the `accessory.context`
-        // the `context` property can be used to store any data about the accessory you may need
         accessory.context.device = device;
 
-        // create the accessory handler for the newly create accessory
-        // this is imported from `platformAccessory.ts`
         new SlideAccesory(this, accessory, this.log);
 
-        // link the accessory to your platform
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
           accessory,
         ]);
@@ -122,30 +116,70 @@ export class SlidePlatform implements DynamicPlatformPlugin {
     }
   }
 
-  discoverRemoteDevices() {}
+  getAccessToken() {
+    return new Promise((resolve, reject) => {
+      if (this.accessToken) {
+        this.log.debug('Already found access token');
+        return resolve(this.accessToken);
+      } else {
+        this.log.debug('Needs access token to continue, returning login');
+        this.login()
+          .then((accessToken) => {
+            resolve(accessToken);
+          })
+          .catch((error) => {
+            reject(error);
+          });
+      }
+    });
+  }
 
-  getRemoteAccessToken() {}
-
-  loginRemote() {}
-
-  getSlidesFromRemote() {}
+  login() {
+    if (this.loginPromise) {
+      this.log.debug('Already logging in, returning existing promise');
+      return this.loginPromise;
+    }
+    const parameters = {
+      email: this.config['email'] || this.config['username'],
+      password: this.config['password'],
+    };
+    const promise = new Promise((resolve, reject) => {
+      this.request(null, 'POST', 'auth/login', parameters)
+        .then((response: any) => {
+          this.loginPromise = null;
+          if (!response.access_token) {
+            return reject(Error('Invalid response'));
+          }
+          this.accessToken = response.access_token;
+          return resolve(response.access_token);
+        })
+        .catch((error) => {
+          this.loginPromise = null;
+          return reject(error);
+        });
+    });
+    this.loginPromise = promise;
+    return promise;
+  }
 
   request(
     device,
     method,
     endPoint,
-    parameters: any = false,
-    accessToken: any = false,
+    parameters: any | false = false,
+    accessToken: any | false = false,
   ) {
     if (endPoint.length > 0 && endPoint.charAt(0) !== '/') {
       endPoint = '/' + endPoint;
     }
 
-    const baseURL = device.ip
-      ? `http://${device.ip}`
-      : 'https://api.goslide.io/api';
+    const baseURL =
+      device && device.ip
+        ? `http://${device.ip}`
+        : 'https://api.goslide.io/api';
 
     const addParameters = method === 'POST' && parameters;
+    const hasCode = device && device.code;
 
     const requestInfo = {
       uri: baseURL + endPoint,
@@ -161,7 +195,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
           sendImmediately: true,
         },
       }),
-      ...(device.code && {
+      ...(hasCode && {
         auth: {
           username: 'user',
           password: device.code,

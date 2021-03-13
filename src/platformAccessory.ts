@@ -1,26 +1,21 @@
 import { Service, PlatformAccessory, Logger } from 'homebridge';
 
-import request from 'request';
 import poll from 'poll';
 
 import { SlidePlatform } from './platform';
 
-/**
- * Platform Accessory
- * An instance of this class is created for each accessory your platform registers
- * Each accessory may expose multiple services of different service types.
- */
 export class SlideAccesory {
   private service: Service;
   private readonly characteristic;
 
   private readonly name: string;
   private readonly ip: string;
-  private readonly code: string;
-  private isLikelyMoving;
-  private calibrationTime;
-  private tolerance;
-  private pollInterval;
+  private readonly identifier: string | null;
+
+  private isLikelyMoving: boolean;
+  private calibrationTime: number;
+  private tolerance: number;
+  private pollInterval: number;
 
   constructor(
     private readonly platform: SlidePlatform,
@@ -28,15 +23,17 @@ export class SlideAccesory {
     public readonly log: Logger,
   ) {
     this.characteristic = this.platform.Characteristic;
-    // extract name from config
+
+    // extract data from config
     this.name = accessory.context.device.name;
     this.ip = accessory.context.device.ip;
-    this.code = accessory.context.device.code;
+    this.identifier = accessory.context.device.id || null;
     this.tolerance = accessory.context.device.tolerance || 7;
-    this.isLikelyMoving = false;
     this.calibrationTime = (accessory.context.device.closingTime || 20) * 1000; // 20 seconds
+    this.pollInterval = accessory.context.device.pollInterval || 10;
 
-    // set accessory information
+    this.isLikelyMoving = false;
+
     this.accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(
@@ -45,23 +42,15 @@ export class SlideAccesory {
       )
       .setCharacteristic(this.platform.Characteristic.Model, 'Slide');
 
-    // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
-    // you can create multiple services for each accessory
     this.service =
       this.accessory.getService(this.platform.Service.WindowCovering) ||
       this.accessory.addService(this.platform.Service.WindowCovering);
 
-    // set the service name, this is what is displayed as the default name on the Home app
-    // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.service.setCharacteristic(
       this.platform.Characteristic.Name,
       this.name,
     );
 
-    // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/WindowCovering
-
-    // create handlers for required characteristics
     this.service
       .getCharacteristic(this.platform.Characteristic.CurrentPosition)
       .on('get', this.handleCurrentPositionGet.bind(this));
@@ -75,9 +64,10 @@ export class SlideAccesory {
       .on('get', this.handleTargetPositionGet.bind(this))
       .on('set', this.handleTargetPositionSet.bind(this));
 
-    //setting initial position
     this.getSlideInfo().then((slideInfo: any) => {
-      let position = this.slideAPIPositionToHomekit(slideInfo.pos);
+      let position = this.slideAPIPositionToHomekit(
+        slideInfo.pos || slideInfo.data.pos,
+      );
 
       if (this.calculateDifference(position, 100) <= this.tolerance) {
         position = 100;
@@ -93,8 +83,7 @@ export class SlideAccesory {
         .updateValue(position);
     });
 
-    const pollInterval = this.pollInterval || 10;
-    poll(this.updateSlideInfo.bind(this), pollInterval * 1000);
+    poll(this.updateSlideInfo.bind(this), this.pollInterval * 1000);
 
     log.info('Slide Curtain finished initializing!');
   }
@@ -139,19 +128,24 @@ export class SlideAccesory {
     return this.platform.request(
       this.accessory.context.device,
       'GET',
-      'rpc/Slide.GetInfo',
+      this.ip ? 'rpc/Slide.GetInfo' : `slide/${this.identifier}/info`,
+      false,
+      this.ip ? false : this.platform.accessToken,
     );
   }
 
-  /**
-   * Update the slide information from the poll
-   */
   updateSlideInfo() {
     this.log.debug('Triggered update slide info from poll');
     this.getSlideInfo().then((slideInfo: any) => {
-      let position = this.slideAPIPositionToHomekit(slideInfo.pos);
+      let position = this.slideAPIPositionToHomekit(
+        slideInfo.pos || slideInfo.data.pos,
+      );
+
       let targetPosition;
       this.log.debug('likelyMoving', this.isLikelyMoving);
+
+      this.calibrationTime =
+        slideInfo['calib_time'] || slideInfo.data['calib_time'];
 
       if (!this.isLikelyMoving) {
         targetPosition = position;
@@ -202,14 +196,13 @@ export class SlideAccesory {
     });
   }
 
-  /**
-   * Handle requests to get the current value of the "Current Position" characteristic
-   */
   handleCurrentPositionGet(callback) {
     this.log.debug('Triggered GET CurrentPosition');
     this.getSlideInfo()
       .then((slideInfo: any) => {
-        let position = this.slideAPIPositionToHomekit(slideInfo.pos);
+        let position = this.slideAPIPositionToHomekit(
+          slideInfo.pos || slideInfo.data.pos,
+        );
         let targetPosition;
 
         if (!this.isLikelyMoving) {
@@ -242,14 +235,13 @@ export class SlideAccesory {
       });
   }
 
-  /**
-   * Handle requests to get the current value of the "Target Position" characteristic
-   */
   handleTargetPositionGet(callback) {
     this.log.debug('Triggered GET TargetPosition');
     this.getSlideInfo()
       .then((slideInfo: any) => {
-        let position = this.slideAPIPositionToHomekit(slideInfo.pos);
+        let position = this.slideAPIPositionToHomekit(
+          slideInfo.pos || slideInfo.data.pos,
+        );
 
         if (this.calculateDifference(position, 100) <= this.tolerance) {
           position = 100;
@@ -263,19 +255,22 @@ export class SlideAccesory {
       });
   }
 
-  /**
-   * Handle requests to set the "Target Position" characteristic
-   */
   handleTargetPositionSet(targetPosition, callback) {
     this.log.debug('Triggered SET TargetPosition:' + targetPosition);
 
     const setPos = this.homekitPositionToSlideAPI(targetPosition);
 
     this.platform
-      .request(this.accessory.context.device, 'POST', 'rpc/Slide.SetPos', {
-        pos: setPos,
-      })
-      .then((response) => {
+      .request(
+        this.accessory.context.device,
+        'POST',
+        this.ip ? 'rpc/Slide.SetPos' : `slide/${this.identifier}/position`,
+        {
+          pos: setPos,
+        },
+        this.ip ? false : this.platform.accessToken,
+      )
+      .then(() => {
         const currentPosition =
           this.service.getCharacteristic(this.characteristic.CurrentPosition)
             .value || targetPosition;
@@ -310,9 +305,6 @@ export class SlideAccesory {
       });
   }
 
-  /**
-   * Handle requests to get the current value of the "Position State" characteristic
-   */
   handlePositionStateGet(callback) {
     this.log.debug('Triggered GET PositionState');
     callback(
