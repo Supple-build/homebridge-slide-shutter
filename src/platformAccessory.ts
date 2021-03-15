@@ -130,7 +130,7 @@ export class SlideAccesory {
       'GET',
       this.ip ? 'rpc/Slide.GetInfo' : `slide/${this.identifier}/info`,
       false,
-      this.ip ? false : this.platform.accessToken,
+      !this.ip,
     );
   }
 
@@ -268,7 +268,7 @@ export class SlideAccesory {
         {
           pos: setPos,
         },
-        this.ip ? false : this.platform.accessToken,
+        !this.ip,
       )
       .then(() => {
         const currentPosition =

@@ -167,7 +167,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
     method,
     endPoint,
     parameters: any | false = false,
-    accessToken: any | false = false,
+    useToken = false,
   ) {
     if (endPoint.length > 0 && endPoint.charAt(0) !== '/') {
       endPoint = '/' + endPoint;
@@ -179,7 +179,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
         : 'https://api.goslide.io/api';
 
     const addParameters = method === 'POST' && parameters;
-    const hasCode = device && device.code;
+    const authUsingCode = !useToken && device && device.code;
 
     const requestInfo = {
       uri: baseURL + endPoint,
@@ -189,13 +189,13 @@ export class SlidePlatform implements DynamicPlatformPlugin {
         'User-Agent': 'homebridge-slide-link',
       },
       json: true,
-      ...(accessToken && {
+      ...(useToken && {
         auth: {
-          bearer: accessToken,
+          bearer: this.accessToken,
           sendImmediately: true,
         },
       }),
-      ...(hasCode && {
+      ...(authUsingCode && {
         auth: {
           username: 'user',
           password: device.code,
