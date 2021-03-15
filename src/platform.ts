@@ -62,7 +62,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
 
   discoverRemoteDevices() {
     this.getAccessToken().then(() => {
-      this.request(null, 'GET', 'slides/overview', null, this.accessToken).then(
+      this.request(null, 'GET', 'slides/overview', null, true).then(
         (response: any) => {
           const slides = response.slides;
           if (slides) {
