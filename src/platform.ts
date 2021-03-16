@@ -11,7 +11,7 @@ import {
 import request from 'request';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
-import { SlideAccesory } from './platformAccessory';
+import { SlideAccessory } from './accessory';
 
 export class SlidePlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
@@ -99,7 +99,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
           existingAccessory.displayName,
         );
 
-        new SlideAccesory(this, existingAccessory, this.log);
+        new SlideAccessory(this, existingAccessory, this.log);
       } else {
         this.log.info('Adding new accessory:', device.name);
 
@@ -107,7 +107,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
 
         accessory.context.device = device;
 
-        new SlideAccesory(this, accessory, this.log);
+        new SlideAccessory(this, accessory, this.log);
 
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
           accessory,
