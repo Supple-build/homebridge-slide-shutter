@@ -1,9 +1,5 @@
-import {
-  Service,
-  PlatformAccessory,
-  CharacteristicValue,
-  Logger,
-} from 'homebridge';
+import { Service, PlatformAccessory, Logger } from 'homebridge';
+import poll from 'poll';
 
 import { SlidePlatform } from './platform';
 
@@ -20,6 +16,7 @@ export class SlideAccessory {
   private readonly ip: string;
   private readonly identifier: string | null;
 
+  private isMoving: boolean;
   private calibrationTime: number;
   private tolerance: number;
   private pollInterval: number;
@@ -35,9 +32,10 @@ export class SlideAccessory {
     this.name = accessory.context.device.name;
     this.ip = accessory.context.device.ip;
     this.identifier = accessory.context.device.id || null;
-    this.tolerance = accessory.context.device.tolerance || 7;
+    this.tolerance = accessory.context.device.tolerance || 15;
     this.calibrationTime = (accessory.context.device.closingTime || 20) * 1000; // 20 seconds
     this.pollInterval = accessory.context.device.pollInterval || 10;
+    this.isMoving = false;
 
     // set accessory information
     this.accessory
@@ -80,6 +78,25 @@ export class SlideAccessory {
       .getCharacteristic(this.characteristic.TargetPosition)
       .onGet(this.handleTargetPositionGet.bind(this))
       .onSet(this.handleTargetPositionSet.bind(this));
+
+    // Set initial state
+    this.getSlideInfo().then((slideInfo: any) => {
+      const position = this.slideAPIPositionToHomekit(
+        slideInfo.pos || slideInfo.data.pos,
+      );
+
+      this.service
+        .getCharacteristic(this.characteristic.TargetPosition)
+        .updateValue(position);
+
+      this.service
+        .getCharacteristic(this.characteristic.CurrentPosition)
+        .updateValue(position);
+    });
+
+    poll(this.updateSlideInfo.bind(this), this.pollInterval * 1000);
+
+    log.info('Slide link initialised!');
   }
 
   /**
@@ -133,9 +150,55 @@ export class SlideAccessory {
       });
   }
 
+  setPositionState(currentPosition, targetPosition) {
+    this.log.debug('Triggered setPositionState');
+
+    const targetIsInOpenTolerance =
+      this.calculateDifference(targetPosition, 100) <= this.tolerance;
+    const targetIsInClosedTolerance =
+      this.calculateDifference(targetPosition, 0) <= this.tolerance;
+
+    const currentIsInOpenTolerance =
+      this.calculateDifference(currentPosition, 100) <= this.tolerance;
+    const currentIsInClosedTolerance =
+      this.calculateDifference(currentPosition, 0) <= this.tolerance;
+
+    if (
+      (targetIsInOpenTolerance && currentIsInOpenTolerance) ||
+      (targetIsInClosedTolerance && currentIsInClosedTolerance)
+    ) {
+      this.log.debug('setPositionState STOPPED OPEN/CLOSED');
+      this.service
+        .getCharacteristic(this.characteristic.PositionState)
+        .updateValue(this.characteristic.PositionState.STOPPED);
+    } else if (targetPosition > currentPosition) {
+      this.log.debug('setPositionState INCREASING');
+      this.service
+        .getCharacteristic(this.characteristic.PositionState)
+        .updateValue(this.characteristic.PositionState.INCREASING);
+    } else if (targetPosition < currentPosition) {
+      this.log.debug('setPositionState DECREASING');
+      this.service
+        .getCharacteristic(this.characteristic.PositionState)
+        .updateValue(this.characteristic.PositionState.DECREASING);
+    }
+  }
+
   updateSlideInfo() {
-    this.getSlideInfo().then((slideInfo: any) => {
-      this.log.debug('updateSlideInfo slideInfo', slideInfo);
+    this.log.debug('Triggered updateSlideInfo');
+    return this.getSlideInfo().then((slideInfo: any) => {
+      const targetPosition = this.service.getCharacteristic(
+        this.characteristic.TargetPosition,
+      ).value;
+      const currentPosition = this.slideAPIPositionToHomekit(
+        slideInfo.pos || slideInfo.data.pos,
+      );
+
+      this.service
+        .getCharacteristic(this.characteristic.CurrentPosition)
+        .updateValue(currentPosition);
+
+      this.setPositionState(currentPosition, targetPosition);
     });
   }
 
@@ -147,13 +210,13 @@ export class SlideAccessory {
 
     return this.getSlideInfo()
       .then((slideInfo: any) => {
-        // this.log.debug('slideInfo', slideInfo);
-
         const position = this.slideAPIPositionToHomekit(
           slideInfo.pos || slideInfo.data.pos,
         );
 
-        // this.log.debug('position', position);
+        this.service
+          .getCharacteristic(this.characteristic.CurrentPosition)
+          .updateValue(position);
 
         return position;
       })
@@ -169,24 +232,8 @@ export class SlideAccessory {
   handleTargetPositionGet() {
     this.log.debug('Triggered GET TargetPosition');
 
-    return this.getSlideInfo()
-      .then((slideInfo: any) => {
-        let position = this.slideAPIPositionToHomekit(
-          slideInfo.pos || slideInfo.data.pos,
-        );
-
-        if (this.calculateDifference(position, 100) <= this.tolerance) {
-          position = 100;
-        } else if (this.calculateDifference(position, 0) <= this.tolerance) {
-          position = 0;
-        }
-
-        return position;
-      })
-      .catch((error) => {
-        this.log.error(error);
-        return error;
-      });
+    return this.service.getCharacteristic(this.characteristic.TargetPosition)
+      .value;
   }
 
   /**
@@ -199,9 +246,7 @@ export class SlideAccessory {
       pos: this.homekitPositionToSlideAPI(value),
     };
 
-    this.log.debug('parameters', parameters);
-
-    this.platform
+    return this.platform
       .request(
         this.accessory.context.device,
         'POST',
@@ -210,11 +255,18 @@ export class SlideAccessory {
         !this.ip,
       )
       .then(() => {
-        this.log.debug('API returned');
+        this.service
+          .getCharacteristic(this.characteristic.TargetPosition)
+          .updateValue(value);
+
+        this.setPositionState(
+          this.service.getCharacteristic(this.characteristic.CurrentPosition)
+            .value,
+          value,
+        );
       })
       .catch((error) => {
         this.log.error(error);
-        return error;
       });
   }
 
