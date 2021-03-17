@@ -1,9 +1,9 @@
 /**
  * This is the name of the platform that users will use to register the plugin in the Homebridge config.json
  */
-export const PLATFORM_NAME = 'slide-link';
+export const PLATFORM_NAME = 'slide-shutter';
 
 /**
  * This must match the name of your plugin as defined the package.json
  */
-export const PLUGIN_NAME = 'homebridge-slide-link';
+export const PLUGIN_NAME = 'homebridge-slide-shutter';

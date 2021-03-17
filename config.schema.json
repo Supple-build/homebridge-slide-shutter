@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "slide-link",
+  "pluginAlias": "slide-shutter",
   "pluginType": "platform",
   "singular": true,
   "schema": {
@@ -10,7 +10,7 @@
         "title": "Name",
         "type": "string",
         "required": true,
-        "default": "Slide Link"
+        "default": "Slide Shutter"
       },
       "mode": {
         "title": "Mode",

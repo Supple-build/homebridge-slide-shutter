@@ -1,17 +1,17 @@
 {
   "private": true,
-  "displayName": "Slide Link",
-  "name": "homebridge-slide-link",
+  "displayName": "Slide Shutter",
+  "name": "homebridge-slide-shutter",
   "version": "0.1.0",
   "description": "Homebridge plugin for Slide by Innovation in Motion.",
   "author": "Bram Smulders <source@bram.is>",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git://github.com/bram-is/homebridge-slide-link.git"
+    "url": "git://github.com/bram-is/homebridge-slide-shutter.git"
   },
   "bugs": {
-    "url": "https://github.com/bram-is/homebridge-slide-link/issues"
+    "url": "https://github.com/bram-is/homebridge-slide-shutter/issues"
   },
   "engines": {
     "node": ">=10.17.0",
@@ -29,6 +29,7 @@
     "Slide",
     "Innovation in Motion",
     "curtain",
+    "shutter",
     "homekit"
   ],
   "dependencies": {
