@@ -169,6 +169,8 @@ export class SlidePlatform implements DynamicPlatformPlugin {
     parameters: any | false = false,
     useToken = false,
   ) {
+    this.log.debug('Triggered platform request');
+
     if (endPoint.length > 0 && endPoint.charAt(0) !== '/') {
       endPoint = '/' + endPoint;
     }
