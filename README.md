@@ -58,5 +58,6 @@ Now start of restart homebridge and all slides should appear in the HomeKit app.
 # Roadmap
 
 - [ ] Cleanup code and use `async` & `await` instead of promises.
+- [ ] Cleanup any's
 - [ ] Make the remote API work as well.
 - [ ] Correctly report errors by marking the accessory as "Not responding" in the Home app.
