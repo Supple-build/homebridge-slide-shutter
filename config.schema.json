@@ -10,33 +10,7 @@
         "title": "Name",
         "type": "string",
         "required": true,
-        "default": "Slide Shutter"
-      },
-      "mode": {
-        "title": "Mode",
-        "type": "string",
-        "default": "local",
-        "oneOf": [
-          { "title": "Remote", "enum": ["remote"] },
-          { "title": "Local", "enum": ["local"] }
-        ],
-        "required": true
-      },
-      "username": {
-        "title": "Username",
-        "type": "string",
-        "required": true,
-        "condition": {
-          "functionBody": "return model.mode === 'remote';"
-        }
-      },
-      "password": {
-        "title": "Password",
-        "type": "string",
-        "required": true,
-        "condition": {
-          "functionBody": "return model.mode === 'remote';"
-        }
+        "default": "slide-shutter"
       },
       "devices": {
         "title": "Slides",

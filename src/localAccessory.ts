@@ -30,8 +30,8 @@ export class SlideLocalAccessory {
     this.name = accessory.context.device.name;
     this.ip = accessory.context.device.ip;
     this.identifier = accessory.context.device.id || null;
-    this.pollInterval = accessory.context.device.pollInterval || 10;
-    this.tolerance = accessory.context.device.tolerance || 15;
+    this.pollInterval = accessory.context.device.pollInterval || 5;
+    this.tolerance = accessory.context.device.tolerance || 10;
 
     // set accessory information
     this.accessory
