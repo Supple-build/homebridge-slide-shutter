@@ -34,13 +34,13 @@
               "type": "string",
               "required": true
             },
-            "pollInterval": {
-              "title": "Poll Interval",
+            "tolerance": {
+              "title": "Tolerance",
               "type": "integer",
               "required": false
             },
-            "tolerance": {
-              "title": "Tolerance",
+            "pollInterval": {
+              "title": "Poll Interval",
               "type": "integer",
               "required": false
             }
