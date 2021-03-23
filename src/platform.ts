@@ -11,7 +11,7 @@ import {
 import request from 'request';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
-import { SlideAccessory } from './accessory';
+import { SlideLocalAccessory } from './localAccessory';
 
 export class SlidePlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
@@ -36,7 +36,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
     this.log.debug('Finished initializing platform:', this.config.name);
 
     this.api.on('didFinishLaunching', () => {
-      log.debug('Executed didFinishLaunching callback');
+      this.log.debug('Executed didFinishLaunching callback');
       this.discoverDevices();
     });
   }
@@ -55,8 +55,6 @@ export class SlidePlatform implements DynamicPlatformPlugin {
   discoverDevices() {
     if (this.mode === 'local') {
       this.registerDevices(this.devices);
-    } else {
-      this.discoverRemoteDevices();
     }
   }
 
@@ -99,7 +97,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
           existingAccessory.displayName,
         );
 
-        new SlideAccessory(this, existingAccessory, this.log);
+        new SlideLocalAccessory(this, existingAccessory, this.log);
       } else {
         this.log.info('Adding new accessory:', device.name);
 
@@ -107,7 +105,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
 
         accessory.context.device = device;
 
-        new SlideAccessory(this, accessory, this.log);
+        new SlideLocalAccessory(this, accessory, this.log);
 
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
           accessory,

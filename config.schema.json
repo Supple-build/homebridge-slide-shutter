@@ -15,7 +15,7 @@
       "mode": {
         "title": "Mode",
         "type": "string",
-        "default": "remote",
+        "default": "local",
         "oneOf": [
           { "title": "Remote", "enum": ["remote"] },
           { "title": "Local", "enum": ["local"] }
@@ -70,11 +70,6 @@
             },
             "tolerance": {
               "title": "Tolerance",
-              "type": "integer",
-              "required": false
-            },
-            "closingTime": {
-              "title": "Closing Time",
               "type": "integer",
               "required": false
             }

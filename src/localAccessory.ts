@@ -8,7 +8,7 @@ import { SlidePlatform } from './platform';
  * An instance of this class is created for each accessory your platform registers
  * Each accessory may expose multiple services of different service types.
  */
-export class SlideAccessory {
+export class SlideLocalAccessory {
   private service: Service;
   private readonly characteristic;
 
@@ -16,8 +16,6 @@ export class SlideAccessory {
   private readonly ip: string;
   private readonly identifier: string | null;
 
-  private isMoving: boolean;
-  private calibrationTime: number;
   private tolerance: number;
   private pollInterval: number;
 
@@ -32,10 +30,8 @@ export class SlideAccessory {
     this.name = accessory.context.device.name;
     this.ip = accessory.context.device.ip;
     this.identifier = accessory.context.device.id || null;
-    this.tolerance = accessory.context.device.tolerance || 15;
-    this.calibrationTime = (accessory.context.device.closingTime || 20) * 1000; // 20 seconds
     this.pollInterval = accessory.context.device.pollInterval || 10;
-    this.isMoving = false;
+    this.tolerance = accessory.context.device.tolerance || 15;
 
     // set accessory information
     this.accessory
