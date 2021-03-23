@@ -20,11 +20,16 @@ Currently this plugin only supports the latest local API. In the future it will 
 
 ## Installation
 
+You can search in the HomeBridge `Plugins` tab for `homebridge-slide-shutter`. Follow instructions on screen to configure your slides.
+
+### Manual installation
 The following command can be used to install the plugin in Homebridge:
 
 ```bash
 npm install -g homebridge-slide-shutter
 ```
+
+After installing
 
 After that you will need to enter the following details into the ~/.homebridge/config.json:
 
@@ -48,7 +53,7 @@ After that you will need to enter the following details into the ~/.homebridge/c
 ```
 Multiple Slides can be added to the `devices` array.
 
-Now start of restart homebridge and all slides connected to your account should appear in the HomeKit app.
+Now start of restart homebridge and all slides should appear in the HomeKit app.
 
 # Roadmap
 

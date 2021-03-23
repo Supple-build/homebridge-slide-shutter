@@ -15,9 +15,6 @@
       "devices": {
         "title": "Slides",
         "type": "array",
-        "condition": {
-          "functionBody": "return model.mode === 'local';"
-        },
         "items": {
           "title": "Curtain",
           "type": "object",
