@@ -148,6 +148,8 @@ export class SlideLocalAccessory {
 
   setPositionState(currentPosition, targetPosition) {
     this.log.debug('Triggered setPositionState');
+    this.log.debug('currentPosition', currentPosition);
+    this.log.debug('targetPosition', targetPosition);
 
     const targetIsInOpenTolerance =
       this.calculateDifference(targetPosition, 100) <= this.tolerance;
@@ -161,7 +163,8 @@ export class SlideLocalAccessory {
 
     if (
       (targetIsInOpenTolerance && currentIsInOpenTolerance) ||
-      (targetIsInClosedTolerance && currentIsInClosedTolerance)
+      (targetIsInClosedTolerance && currentIsInClosedTolerance) ||
+      targetPosition === currentPosition
     ) {
       this.log.debug('setPositionState STOPPED OPEN/CLOSED');
       this.service
