@@ -1,5 +1,5 @@
 {
-  "private": false,
+  "private": true,
   "displayName": "Slide Shutter",
   "name": "homebridge-slide-shutter",
   "version": "0.1.0",
