@@ -97,6 +97,8 @@ export class SlidePlatform implements DynamicPlatformPlugin {
           existingAccessory.displayName,
         );
 
+        existingAccessory.context.device = device;
+
         new SlideLocalAccessory(this, existingAccessory, this.log);
       } else {
         this.log.info('Adding new accessory:', device.name);
