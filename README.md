@@ -37,14 +37,14 @@ After that you will need to enter the following details into the ~/.homebridge/c
 {
   "platforms":[
     {
-      "name": "slide-shutter", #OPTIONAL. Your desired display name for in the homebridge logs.
+      "name": "slide-shutter",
       "devices": [
         {
-          "name": "name", #REQUIRED. Your desired display name for in HomeKit.
-          "ip": "x.x.x.x", #REQUIRED. IP for your Slide on your router. Should be a fixed IP address.
-          "code": "xxxxxxxx", #REQUIRED. Code with 8 characters from the sticker on the top of your Slide or in the manual.
-          "tolerance": x, #OPTIONAL. Threshold in % to still consider state fully open or fully closed. Defaults to 10.
-          "pollInterval": x #OPTIONAL. Time in seconds to poll the Slide curtain. Defaults to 5.
+          "name": "name",
+          "ip": "x.x.x.x",
+          "code": "xxxxxxxx",
+          "tolerance": 5,
+          "pollInterval": 20
         }
       ]
     }
@@ -53,11 +53,4 @@ After that you will need to enter the following details into the ~/.homebridge/c
 ```
 Multiple Slides can be added to the `devices` array.
 
-Now start of restart homebridge and all slides should appear in the HomeKit app.
-
-# Roadmap
-
-- [ ] Cleanup code and use `async` & `await` instead of promises.
-- [ ] Cleanup any's
-- [ ] Make the remote API work as well.
-- [ ] Correctly report errors by marking the accessory as "Not responding" in the Home app.
+Now start or restart homebridge and all slides should appear in the HomeKit app.

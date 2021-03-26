@@ -9,8 +9,9 @@
       "name": {
         "title": "Name",
         "type": "string",
-        "required": true,
-        "default": "slide-shutter"
+        "required": false,
+        "default": "slide-shutter",
+        "description": "Your desired display name for in the homebridge logs."
       },
       "devices": {
         "title": "Slides",
@@ -22,27 +23,32 @@
             "name": {
               "title": "Name",
               "type": "string",
-              "required": true
+              "required": true,
+              "description": "Your desired display name for in HomeKit."
             },
             "ip": {
               "title": "ip",
               "type": "string",
-              "required": true
+              "required": true,
+              "description": "IP for your Slide on your router. Should be a fixed IP address."
             },
             "code": {
               "title": "Code",
               "type": "string",
-              "required": true
+              "required": true,
+              "description": "Code with 8 characters from the sticker on the top of your Slide or in the manual."
             },
             "tolerance": {
               "title": "Tolerance",
               "type": "integer",
-              "required": false
+              "required": false,
+              "description": "Threshold in % to still consider state fully open or fully closed. Defaults to 5."
             },
             "pollInterval": {
               "title": "Poll Interval",
               "type": "integer",
-              "required": false
+              "required": false,
+              "description": "Time in seconds to poll the Slide curtain. Defaults to 20 seconds."
             }
           }
         }
