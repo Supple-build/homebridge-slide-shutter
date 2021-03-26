@@ -20,7 +20,9 @@ Currently this plugin only supports the latest local API. In the future it will 
 
 ## Installation
 
-You can search in the HomeBridge `Plugins` tab for `homebridge-slide-shutter`. Follow instructions on screen to configure your slides.
+You can search in the HomeBridge `Plugins` tab for `homebridge-slide-shutter`. Follow instructions on screen to configure your slides:
+
+<img src="https://github.com/bram-is/homebridge-slide-shutter/raw/main/_assets/config.png" width="100%">
 
 ### Manual installation
 The following command can be used to install the plugin in Homebridge:
