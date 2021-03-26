@@ -224,7 +224,13 @@ export class SlideLocalAccessory {
 
     return this.getSlideInfo()
       .then((slideInfo: any) => {
-        const position = this.slideAPIPositionToHomekit(slideInfo.pos);
+        let position = this.slideAPIPositionToHomekit(slideInfo.pos);
+
+        if (this.calculateDifference(position, 100) <= this.tolerance) {
+          position = 100;
+        } else if (this.calculateDifference(position, 0) <= this.tolerance) {
+          position = 0;
+        }
 
         this.service
           .getCharacteristic(this.characteristic.CurrentPosition)
@@ -243,9 +249,17 @@ export class SlideLocalAccessory {
    */
   handleTargetPositionGet() {
     this.log.debug('Triggered GET TargetPosition');
+    let targetPosition = this.service.getCharacteristic(
+      this.characteristic.TargetPosition,
+    ).value;
 
-    return this.service.getCharacteristic(this.characteristic.TargetPosition)
-      .value;
+    if (this.calculateDifference(targetPosition, 100) <= this.tolerance) {
+      targetPosition = 100;
+    } else if (this.calculateDifference(targetPosition, 0) <= this.tolerance) {
+      targetPosition = 0;
+    }
+
+    return targetPosition;
   }
 
   /**
