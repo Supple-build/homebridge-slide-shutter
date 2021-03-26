@@ -18,6 +18,8 @@ export class SlideLocalAccessory {
 
   private tolerance: number;
   private pollInterval: number;
+  private calibrationTime: number;
+  private externalMove: boolean;
 
   constructor(
     private readonly platform: SlidePlatform,
@@ -30,8 +32,10 @@ export class SlideLocalAccessory {
     this.name = accessory.context.device.name;
     this.ip = accessory.context.device.ip;
     this.identifier = accessory.context.device.id || null;
-    this.pollInterval = accessory.context.device.pollInterval || 5;
+    this.pollInterval = accessory.context.device.pollInterval || 20;
     this.tolerance = accessory.context.device.tolerance || 5;
+    this.calibrationTime = accessory.context.device.calibrationTime || 20000;
+    this.externalMove = true;
 
     // set accessory information
     this.accessory
@@ -79,6 +83,8 @@ export class SlideLocalAccessory {
     this.getSlideInfo().then((slideInfo: any) => {
       const position = this.slideAPIPositionToHomekit(slideInfo.pos);
 
+      this.calibrationTime = slideInfo['calib_time'];
+
       this.service
         .getCharacteristic(this.characteristic.TargetPosition)
         .updateValue(position);
@@ -87,6 +93,8 @@ export class SlideLocalAccessory {
         .getCharacteristic(this.characteristic.CurrentPosition)
         .updateValue(position);
     });
+
+    this.log.debug('interval', this.pollInterval * 1000);
 
     poll(this.updateSlideInfo.bind(this), this.pollInterval * 1000);
 
@@ -149,7 +157,9 @@ export class SlideLocalAccessory {
     return this.getSlideInfo().then((slideInfo: any) => {
       let currentPosition = this.slideAPIPositionToHomekit(slideInfo.pos);
 
-      const targetPosition = this.service.getCharacteristic(
+      this.calibrationTime = slideInfo['calib_time'];
+
+      let targetPosition = this.service.getCharacteristic(
         this.characteristic.TargetPosition,
       ).value as number;
 
@@ -170,21 +180,31 @@ export class SlideLocalAccessory {
         currentPosition = targetPosition;
       }
 
+      if (this.externalMove) {
+        targetPosition = currentPosition;
+        this.service
+          .getCharacteristic(this.characteristic.TargetPosition)
+          .updateValue(targetPosition);
+      }
+
       this.service
         .getCharacteristic(this.characteristic.CurrentPosition)
         .updateValue(currentPosition);
 
       this.updatePositionState(targetPosition, currentPosition);
+
+      if (!this.externalMove && difference <= this.tolerance) {
+        this.log.debug('reset externalMove');
+        this.externalMove = true;
+      }
     });
   }
 
   updatePositionState(targetPosition, currentPosition) {
-    if (targetPosition === currentPosition) {
+    if (targetPosition === currentPosition || this.externalMove) {
       this.service
         .getCharacteristic(this.characteristic.PositionState)
         .updateValue(this.characteristic.PositionState.STOPPED);
-      // We have stopped so set the likely moving to false
-      // this.isLikelyMoving = false;
     } else if (targetPosition < currentPosition) {
       this.service
         .getCharacteristic(this.characteristic.PositionState)
@@ -256,6 +276,20 @@ export class SlideLocalAccessory {
         ).value;
 
         this.updatePositionState(targetPosition, currentPosition);
+
+        const difference = this.calculateDifference(
+          currentPosition,
+          targetPosition,
+        );
+
+        this.externalMove = false;
+
+        setTimeout(() => {
+          this.log.debug(
+            'Update slide info once again after transition completed',
+          );
+          this.updateSlideInfo();
+        }, (this.calibrationTime / 100) * difference + 2000);
       })
       .catch((error) => {
         this.log.error(error);
