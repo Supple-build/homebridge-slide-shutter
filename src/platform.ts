@@ -59,26 +59,32 @@ export class SlidePlatform implements DynamicPlatformPlugin {
   }
 
   discoverRemoteDevices() {
-    this.getAccessToken().then(() => {
-      this.request(null, 'GET', 'slides/overview', null, true).then(
-        (response: any) => {
-          const slides = response.slides;
-          if (slides) {
-            const devices: any = [];
-            slides.forEach((slideInfo: any) => {
-              devices.push({
-                name: slideInfo['device_name'],
-                id: slideInfo['id'],
-                device_id: slideInfo['device_id'],
-                ip: null,
-                code: null,
+    this.getAccessToken()
+      .then(() => {
+        this.request(null, 'GET', 'slides/overview', null, true)
+          .then((response: any) => {
+            const slides = response.slides;
+            if (slides) {
+              const devices: any = [];
+              slides.forEach((slideInfo: any) => {
+                devices.push({
+                  name: slideInfo['device_name'],
+                  id: slideInfo['id'],
+                  device_id: slideInfo['device_id'],
+                  ip: null,
+                  code: null,
+                });
               });
-            });
-            this.registerDevices(devices);
-          }
-        },
-      );
-    });
+              this.registerDevices(devices);
+            }
+          })
+          .catch((error) => {
+            this.log.error(error);
+          });
+      })
+      .catch((error) => {
+        this.log.error(error);
+      });
   }
 
   registerDevices(devices: any) {
