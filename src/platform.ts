@@ -8,7 +8,7 @@ import {
   Characteristic,
 } from 'homebridge';
 
-import request from 'request';
+import request from 'request-promise';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { SlideLocalAccessory } from './localAccessory';
@@ -22,7 +22,6 @@ export class SlidePlatform implements DynamicPlatformPlugin {
   public readonly accessories: PlatformAccessory[] = [];
   public accessToken;
 
-  private mode;
   private devices;
   private loginPromise;
 
@@ -31,7 +30,6 @@ export class SlidePlatform implements DynamicPlatformPlugin {
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
-    this.mode = this.config.mode || 'local';
     this.devices = this.config.devices || [];
     this.log.debug('Finished initializing platform:', this.config.name);
 
@@ -53,9 +51,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
   }
 
   discoverDevices() {
-    if (this.mode === 'local') {
-      this.registerDevices(this.devices);
-    }
+    this.registerDevices(this.devices);
   }
 
   discoverRemoteDevices() {
@@ -229,5 +225,60 @@ export class SlidePlatform implements DynamicPlatformPlugin {
         return resolve(responseBody);
       });
     });
+  }
+
+  async asyncRequest(
+    device,
+    method,
+    endPoint,
+    parameters: any | false = false,
+    useToken = false,
+  ) {
+    this.log.debug('Triggered platform async request');
+
+    if (endPoint.length > 0 && endPoint.charAt(0) !== '/') {
+      endPoint = '/' + endPoint;
+    }
+
+    const baseURL =
+      device && device.ip
+        ? `http://${device.ip}`
+        : 'https://api.goslide.io/api';
+
+    const addParameters = method === 'POST' && parameters;
+    const authUsingCode = !useToken && device && device.code;
+
+    const requestInfo = {
+      uri: baseURL + endPoint,
+      method: method,
+      timeout: 6000,
+      headers: {
+        'User-Agent': 'homebridge-slide-link',
+      },
+      json: true,
+      ...(useToken && {
+        auth: {
+          bearer: this.accessToken,
+          sendImmediately: true,
+        },
+      }),
+      ...(authUsingCode && {
+        auth: {
+          username: 'user',
+          password: device.code,
+          sendImmediately: false,
+        },
+      }),
+      ...(addParameters && {
+        body: parameters,
+      }),
+    };
+
+    try {
+      const response = await request(requestInfo);
+      return response;
+    } catch (error) {
+      this.log.error('asyncRequest error', error);
+    }
   }
 }
