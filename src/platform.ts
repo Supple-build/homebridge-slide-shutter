@@ -9,20 +9,31 @@ import {
 } from 'homebridge';
 
 import request from 'request-promise';
+import jwt from 'jsonwebtoken';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
-import { SlideLocalAccessory } from './localAccessory';
+import { SlideAccessory } from './accessory';
+
+type slide = {
+  device_name: string;
+  id: number;
+  device_id: string;
+};
 
 type device = {
   name: string;
   ip: string;
+  id: number;
+  deviceId: string;
   code: string;
   tolerance: number;
   pollInterval: number;
 };
 
 type parameters = {
-  pos: number;
+  pos?: number;
+  email?: string;
+  password?: string;
 };
 
 export class SlidePlatform implements DynamicPlatformPlugin {
@@ -35,7 +46,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
   public accessToken;
 
   private devices;
-  // private loginPromise;
+  private remote;
 
   constructor(
     public readonly log: Logger,
@@ -43,6 +54,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
     public readonly api: API,
   ) {
     this.devices = this.config.devices || [];
+    this.remote = this.config.remote || false;
     this.log.debug('Finished initializing platform:', this.config.name);
 
     this.api.on('didFinishLaunching', () => {
@@ -64,36 +76,60 @@ export class SlidePlatform implements DynamicPlatformPlugin {
 
   discoverDevices() {
     this.registerDevices(this.devices);
+
+    if (this.remote) {
+      this.discoverRemoteDevices();
+    }
   }
 
-  // discoverRemoteDevices() {
-  //   this.getAccessToken()
-  //     .then(() => {
-  //       this.request(null, 'GET', 'slides/overview', null, true)
-  //         .then((response: any) => {
-  //           const slides = response.slides;
-  //           if (slides) {
-  //             const devices: any = [];
-  //             slides.forEach((slideInfo: any) => {
-  //               devices.push({
-  //                 name: slideInfo['device_name'],
-  //                 id: slideInfo['id'],
-  //                 device_id: slideInfo['device_id'],
-  //                 ip: null,
-  //                 code: null,
-  //               });
-  //             });
-  //             this.registerDevices(devices);
-  //           }
-  //         })
-  //         .catch((error) => {
-  //           this.log.error(error);
-  //         });
-  //     })
-  //     .catch((error) => {
-  //       this.log.error(error);
-  //     });
-  // }
+  async discoverRemoteDevices() {
+    this.log.debug('Triggered discoverRemoteDevices');
+    await this.getAccessToken();
+
+    const response = await this.asyncRequest(
+      null,
+      'GET',
+      'slides/overview',
+      null,
+      true,
+    );
+
+    if (response && response.slides) {
+      const devices: device[] = [];
+      response.slides.forEach((slide: slide) => {
+        devices.push({
+          name: slide['device_name'],
+          id: slide['id'],
+          deviceId: slide['device_id'],
+          ip: null,
+          code: null,
+          pollInterval: null,
+          tolerance: null,
+        });
+      });
+      this.log.debug('==== devices', devices);
+      this.registerDevices(devices);
+    } else {
+      this.log.info('No Slides found on your Slide account');
+    }
+  }
+
+  async getAccessToken() {
+    if (!this.accessToken || !jwt.verify(this.accessToken)) {
+      const response = await this.login();
+      this.accessToken = response['access_token'] || false;
+    }
+
+    return this.accessToken;
+  }
+
+  async login() {
+    const parameters = {
+      email: this.config['email'] || this.config['username'],
+      password: this.config['password'],
+    };
+    return await this.asyncRequest(null, 'POST', 'auth/login', parameters);
+  }
 
   registerDevices(devices: device[]) {
     for (const device of devices) {
@@ -113,7 +149,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
 
         existingAccessory.context.device = device;
 
-        new SlideLocalAccessory(this, existingAccessory, this.log);
+        new SlideAccessory(this, existingAccessory, this.log);
       } else {
         this.log.info('Adding new accessory:', device.name);
 
@@ -121,7 +157,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
 
         accessory.context.device = device;
 
-        new SlideLocalAccessory(this, accessory, this.log);
+        new SlideAccessory(this, accessory, this.log);
 
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
           accessory,
@@ -129,52 +165,6 @@ export class SlidePlatform implements DynamicPlatformPlugin {
       }
     }
   }
-
-  // getAccessToken() {
-  //   return new Promise((resolve, reject) => {
-  //     if (this.accessToken) {
-  //       this.log.debug('Already found access token');
-  //       return resolve(this.accessToken);
-  //     } else {
-  //       this.log.debug('Needs access token to continue, returning login');
-  //       this.login()
-  //         .then((accessToken) => {
-  //           resolve(accessToken);
-  //         })
-  //         .catch((error) => {
-  //           reject(error);
-  //         });
-  //     }
-  //   });
-  // }
-
-  // login() {
-  //   if (this.loginPromise) {
-  //     this.log.debug('Already logging in, returning existing promise');
-  //     return this.loginPromise;
-  //   }
-  //   const parameters = {
-  //     email: this.config['email'] || this.config['username'],
-  //     password: this.config['password'],
-  //   };
-  //   const promise = new Promise((resolve, reject) => {
-  //     this.request(null, 'POST', 'auth/login', parameters)
-  //       .then((response: any) => {
-  //         this.loginPromise = null;
-  //         if (!response.access_token) {
-  //           return reject(Error('Invalid response'));
-  //         }
-  //         this.accessToken = response.access_token;
-  //         return resolve(response.access_token);
-  //       })
-  //       .catch((error) => {
-  //         this.loginPromise = null;
-  //         return reject(error);
-  //       });
-  //   });
-  //   this.loginPromise = promise;
-  //   return promise;
-  // }
 
   async asyncRequest(
     device,

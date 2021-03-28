@@ -13,11 +13,46 @@
         "default": "slide-shutter",
         "description": "Your desired display name for in the homebridge logs."
       },
+      "tolerance": {
+        "title": "Tolerance",
+        "type": "integer",
+        "required": false,
+        "description": "Threshold in % to still consider state fully open or fully closed. Defaults to 5."
+      },
+      "pollInterval": {
+        "title": "Poll Interval",
+        "type": "integer",
+        "required": false,
+        "description": "Time in seconds to poll the Slide local/remote API. Defaults to 20 seconds."
+      },
+      "remote": {
+        "title": "Also use Remote API?",
+        "type": "boolean",
+        "description": "You can use the remote API alongside your local Slides."
+      },
+      "username": {
+        "title": "Username",
+        "type": "string",
+        "required": true,
+        "description": "Your username/e-mail from api.goslide.io or the slide app.",
+        "condition": {
+          "functionBody": "return model.remote === true;"
+        }
+      },
+      "password": {
+        "title": "Password",
+        "type": "string",
+        "required": true,
+        "description": "Your password from api.goslide.io or the slide app.",
+        "condition": {
+          "functionBody": "return model.remote === true;"
+        }
+      },
       "devices": {
-        "title": "Slides",
+        "title": "Local Slides",
         "type": "array",
         "items": {
-          "title": "Curtain",
+          "title": "Slide",
           "type": "object",
           "properties": {
             "name": {
@@ -42,13 +77,13 @@
               "title": "Tolerance",
               "type": "integer",
               "required": false,
-              "description": "Threshold in % to still consider state fully open or fully closed. Defaults to 5."
+              "description": "You can override global tolerance."
             },
             "pollInterval": {
               "title": "Poll Interval",
               "type": "integer",
               "required": false,
-              "description": "Time in seconds to poll the Slide curtain. Defaults to 20 seconds."
+              "description": "You can override global poll interval."
             }
           }
         }
