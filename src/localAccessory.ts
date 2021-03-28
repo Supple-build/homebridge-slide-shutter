@@ -268,6 +268,7 @@ export class SlideLocalAccessory {
    */
   async handleTargetPositionSet(targetPosition) {
     this.log.debug('Triggered SET TargetPosition:', targetPosition);
+    this.log.info(`Set '${this.name}' to ${targetPosition}`);
 
     const parameters = {
       pos: this.homekitPositionToSlideAPI(targetPosition),
