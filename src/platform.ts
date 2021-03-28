@@ -227,7 +227,8 @@ export class SlidePlatform implements DynamicPlatformPlugin {
       const response = await request(requestInfo);
       return response;
     } catch (error) {
-      this.log.error('asyncRequest error', error);
+      this.log.error(error);
+      return false;
     }
   }
 }

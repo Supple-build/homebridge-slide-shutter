@@ -82,8 +82,6 @@ export class SlideLocalAccessory {
     // Set initial state
     this.setInitialState();
 
-    this.log.debug('interval', this.pollInterval * 1000);
-
     poll(this.updateSlideInfo.bind(this), this.pollInterval * 1000);
 
     log.info('Slide shutter initialised!');
@@ -137,72 +135,74 @@ export class SlideLocalAccessory {
     // Remote API returns `data`, local API does not
     const data = response.data || response;
 
-    return {
-      calib_time: data['calib_time'],
-      pos: data['pos'],
-    };
+    return data ? { calib_time: data['calib_time'], pos: data['pos'] } : false;
   }
 
   async setInitialState() {
     const slideInfo = await this.getSlideInfo();
-    const position = this.slideAPIPositionToHomekit(slideInfo.pos);
 
-    this.calibrationTime = slideInfo['calib_time'];
+    if (slideInfo) {
+      const position = this.slideAPIPositionToHomekit(slideInfo.pos);
 
-    this.service
-      .getCharacteristic(this.characteristic.TargetPosition)
-      .updateValue(position);
+      this.calibrationTime = slideInfo['calib_time'];
 
-    this.service
-      .getCharacteristic(this.characteristic.CurrentPosition)
-      .updateValue(position);
+      this.service
+        .getCharacteristic(this.characteristic.TargetPosition)
+        .updateValue(position);
+
+      this.service
+        .getCharacteristic(this.characteristic.CurrentPosition)
+        .updateValue(position);
+    }
   }
 
   async updateSlideInfo() {
     this.log.debug('Triggered updateSlideInfo');
     const slideInfo = await this.getSlideInfo();
 
-    let currentPosition = this.slideAPIPositionToHomekit(slideInfo.pos);
+    if (slideInfo) {
+      let currentPosition = this.slideAPIPositionToHomekit(slideInfo.pos);
 
-    this.calibrationTime = slideInfo['calib_time'];
+      this.calibrationTime = slideInfo['calib_time'];
 
-    let targetPosition = this.service.getCharacteristic(
-      this.characteristic.TargetPosition,
-    ).value as number;
+      let targetPosition = this.service.getCharacteristic(
+        this.characteristic.TargetPosition,
+      ).value as number;
 
-    const difference = this.calculateDifference(
-      targetPosition,
-      currentPosition,
-    );
+      const difference = this.calculateDifference(
+        targetPosition,
+        currentPosition,
+      );
 
-    this.log.debug(
-      'Difference between position and target position: ',
-      difference,
-    );
+      this.log.debug(
+        'Difference between position and target position: ',
+        difference,
+      );
 
-    this.log.debug('Targetposition: ' + targetPosition);
-    this.log.debug('Current position from API: ' + currentPosition);
+      this.log.debug('Targetposition: ' + targetPosition);
+      this.log.debug('Current position from API: ' + currentPosition);
 
-    if (difference <= this.tolerance) {
-      currentPosition = targetPosition;
-    }
+      if (difference <= this.tolerance) {
+        currentPosition = targetPosition;
+      }
 
-    if (this.externalMove) {
-      targetPosition = currentPosition;
+      if (this.externalMove) {
+        targetPosition = currentPosition;
+        this.service
+          .getCharacteristic(this.characteristic.TargetPosition)
+          .updateValue(targetPosition);
+      }
+
       this.service
-        .getCharacteristic(this.characteristic.TargetPosition)
-        .updateValue(targetPosition);
-    }
+        .getCharacteristic(this.characteristic.CurrentPosition)
+        .updateValue(currentPosition);
 
-    this.service
-      .getCharacteristic(this.characteristic.CurrentPosition)
-      .updateValue(currentPosition);
+      this.updatePositionState(targetPosition, currentPosition);
 
-    this.updatePositionState(targetPosition, currentPosition);
-
-    if (!this.externalMove && difference <= this.tolerance) {
-      this.log.debug('reset externalMove');
-      this.externalMove = true;
+      if (!this.externalMove && difference <= this.tolerance) {
+        this.log.debug('reset externalMove');
+        this.externalMove = true;
+      }
     }
   }
 
@@ -228,19 +228,25 @@ export class SlideLocalAccessory {
   async handleCurrentPositionGet() {
     this.log.debug('Triggered GET CurrentPosition');
 
+    let position = this.service.getCharacteristic(
+      this.characteristic.CurrentPosition,
+    ).value;
+
     const slideInfo = await this.getSlideInfo();
 
-    let position = this.slideAPIPositionToHomekit(slideInfo.pos);
+    if (slideInfo) {
+      position = this.slideAPIPositionToHomekit(slideInfo.pos);
 
-    if (this.calculateDifference(position, 100) <= this.tolerance) {
-      position = 100;
-    } else if (this.calculateDifference(position, 0) <= this.tolerance) {
-      position = 0;
+      if (this.calculateDifference(position, 100) <= this.tolerance) {
+        position = 100;
+      } else if (this.calculateDifference(position, 0) <= this.tolerance) {
+        position = 0;
+      }
+
+      this.service
+        .getCharacteristic(this.characteristic.CurrentPosition)
+        .updateValue(position);
     }
-
-    this.service
-      .getCharacteristic(this.characteristic.CurrentPosition)
-      .updateValue(position);
 
     return position;
   }
@@ -250,6 +256,7 @@ export class SlideLocalAccessory {
    */
   handleTargetPositionGet() {
     this.log.debug('Triggered GET TargetPosition');
+
     let targetPosition = this.service.getCharacteristic(
       this.characteristic.TargetPosition,
     ).value;
@@ -274,7 +281,7 @@ export class SlideLocalAccessory {
       pos: this.homekitPositionToSlideAPI(targetPosition),
     };
 
-    await this.platform.asyncRequest(
+    const response = await this.platform.asyncRequest(
       this.accessory.context.device,
       'POST',
       this.ip ? 'rpc/Slide.SetPos' : `slide/${this.identifier}/position`,
@@ -282,27 +289,31 @@ export class SlideLocalAccessory {
       !this.ip,
     );
 
-    this.service
-      .getCharacteristic(this.characteristic.TargetPosition)
-      .updateValue(targetPosition);
+    if (response) {
+      this.service
+        .getCharacteristic(this.characteristic.TargetPosition)
+        .updateValue(targetPosition);
 
-    const currentPosition = this.service.getCharacteristic(
-      this.characteristic.CurrentPosition,
-    ).value;
+      const currentPosition = this.service.getCharacteristic(
+        this.characteristic.CurrentPosition,
+      ).value;
 
-    this.updatePositionState(targetPosition, currentPosition);
+      this.updatePositionState(targetPosition, currentPosition);
 
-    const difference = this.calculateDifference(
-      currentPosition,
-      targetPosition,
-    );
+      const difference = this.calculateDifference(
+        currentPosition,
+        targetPosition,
+      );
 
-    this.externalMove = false;
+      this.externalMove = false;
 
-    setTimeout(() => {
-      this.log.debug('Update slide info once again after transition completed');
-      this.updateSlideInfo();
-    }, (this.calibrationTime / 100) * difference + 2000);
+      setTimeout(() => {
+        this.log.debug(
+          'Update slide info once again after transition completed',
+        );
+        this.updateSlideInfo();
+      }, (this.calibrationTime / 100) * difference + 2000);
+    }
   }
 
   /**
