@@ -16,7 +16,14 @@
 
 Homebridge plugin for [Slide](https://nl.slide.store/) by Innovation in Motion.
 
-This plugin supports the local and the remote API simultaneously. You can add local slides to the `devices` array. If you enable the `remote` setting and enter your credentials the plugin will add all your slides from the remote API.
+## Features
+
+- Supports both local and remote API's simultaneously.
+- A more finegrained control of Slides by the local API.
+- Updates state correctly in HomeKit, also when controlled from an external source (eg. Slide app).
+- Better performance than other plugins by optimising the poll rate and use the Slide curtain's calibration_time for more efficiency.
+
+**NOTE:** A single curtain can only be configured in one mode: local or remote. A slide which was previously controlled by the remote API but now and now configured for the local API will still show up in the remote API. You can delete it from your remote account through the Slide App so you don't have duplicates in HomeKit.
 
 ## Installation
 
