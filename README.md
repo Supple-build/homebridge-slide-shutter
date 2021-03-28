@@ -5,6 +5,8 @@
 
 </p>
 
+<span align="center">
+
 # Homebridge Slide Shutter
 
 [![Downloads](https://img.shields.io/npm/dt/homebridge-slide-shutter)](https://www.npmjs.com/package/homebridge-slide-shutter)
@@ -13,8 +15,12 @@
 [![GitHub issues](https://img.shields.io/github/issues/bram-is/homebridge-slide-shutter)](https://github.com/bram-is/homebridge-slide-shutter/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/bram-is/homebridge-slide-shutter)](https://github.com/bram-is/homebridge-slide-shutter/pulls)
 
+</span>
 
-Homebridge plugin for [Slide](https://nl.slide.store/) by Innovation in Motion.
+
+## Homebridge plugin for [Slide](https://nl.slide.store/) by Innovation in Motion.
+
+Made by Bram Smulders ([bram.is](https://bram.is)).
 
 ## Features
 
@@ -68,3 +74,4 @@ After that you will need to enter the following details into the ~/.homebridge/c
 Multiple Slides can be added to the `devices` array. If you enable the `remote` setting and enter your credentials the plugin will add all your slides from the remote API.
 
 Now start or restart homebridge and all slides should appear in the HomeKit app.
+
