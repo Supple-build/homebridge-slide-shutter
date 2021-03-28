@@ -12,7 +12,7 @@ import request from 'request-promise';
 import jwt from 'jsonwebtoken';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
-import { SlideLocalAccessory } from './localAccessory';
+import { SlideAccessory } from './accessory';
 
 type slide = {
   device_name: string;
@@ -149,7 +149,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
 
         existingAccessory.context.device = device;
 
-        new SlideLocalAccessory(this, existingAccessory, this.log);
+        new SlideAccessory(this, existingAccessory, this.log);
       } else {
         this.log.info('Adding new accessory:', device.name);
 
@@ -157,7 +157,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
 
         accessory.context.device = device;
 
-        new SlideLocalAccessory(this, accessory, this.log);
+        new SlideAccessory(this, accessory, this.log);
 
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
           accessory,

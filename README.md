@@ -16,7 +16,7 @@
 
 Homebridge plugin for [Slide](https://nl.slide.store/) by Innovation in Motion.
 
-Currently this plugin only supports the latest local API. In the future it will also be able to control curtains with the remote API.
+This plugin supports the local and the remote API simultaneously. You can add local slides to the `devices` array. If you enable the `remote` setting and enter your credentials the plugin will add all your slides from the remote API.
 
 ## Installation
 
@@ -40,6 +40,11 @@ After that you will need to enter the following details into the ~/.homebridge/c
   "platforms":[
     {
       "name": "slide-shutter",
+      "tolerance": 5,
+      "pollInterval": 20,
+      "remote": true,
+      "email": "your@email.com",
+      "password": "**********",
       "devices": [
         {
           "name": "name",
@@ -53,6 +58,6 @@ After that you will need to enter the following details into the ~/.homebridge/c
   ]
  }
 ```
-Multiple Slides can be added to the `devices` array.
+Multiple Slides can be added to the `devices` array. If you enable the `remote` setting and enter your credentials the plugin will add all your slides from the remote API.
 
 Now start or restart homebridge and all slides should appear in the HomeKit app.
