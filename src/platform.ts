@@ -14,10 +14,16 @@ import jwt from 'jsonwebtoken';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { SlideLocalAccessory } from './localAccessory';
 
+type slide = {
+  device_name: string;
+  id: number;
+  device_id: string;
+};
+
 type device = {
   name: string;
   ip: string;
-  id: string;
+  id: number;
   deviceId: string;
   code: string;
   tolerance: number;
@@ -90,7 +96,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
 
     if (response && response.slides) {
       const devices: device[] = [];
-      response.slides.forEach((slide: any) => {
+      response.slides.forEach((slide: slide) => {
         devices.push({
           name: slide['device_name'],
           id: slide['id'],

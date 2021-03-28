@@ -86,7 +86,7 @@ export class SlideLocalAccessory {
     // Set initial state
     this.setInitialState();
 
-    // poll(this.updateSlideInfo.bind(this), this.pollInterval * 1000);
+    poll(this.updateSlideInfo.bind(this), this.pollInterval * 1000);
 
     log.info('Slide shutter initialised!');
   }
