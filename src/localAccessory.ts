@@ -32,8 +32,12 @@ export class SlideLocalAccessory {
     this.name = accessory.context.device.name;
     this.ip = accessory.context.device.ip;
     this.identifier = accessory.context.device.id || null;
-    this.pollInterval = accessory.context.device.pollInterval || 20;
-    this.tolerance = accessory.context.device.tolerance || 5;
+    this.pollInterval =
+      accessory.context.device.pollInterval ||
+      this.platform.config.pollInterval ||
+      20;
+    this.tolerance =
+      accessory.context.device.tolerance || this.platform.config.tolerance || 5;
     this.calibrationTime = accessory.context.device.calibrationTime || 20000;
     this.externalMove = true;
 
@@ -82,7 +86,7 @@ export class SlideLocalAccessory {
     // Set initial state
     this.setInitialState();
 
-    poll(this.updateSlideInfo.bind(this), this.pollInterval * 1000);
+    // poll(this.updateSlideInfo.bind(this), this.pollInterval * 1000);
 
     log.info('Slide shutter initialised!');
   }
@@ -135,7 +139,9 @@ export class SlideLocalAccessory {
     // Remote API returns `data`, local API does not
     const data = response.data || response;
 
-    return data ? { calib_time: data['calib_time'], pos: data['pos'] } : false;
+    return data && data['calib_time'] && data['pos']
+      ? { calib_time: data['calib_time'], pos: data['pos'] }
+      : false;
   }
 
   async setInitialState() {
