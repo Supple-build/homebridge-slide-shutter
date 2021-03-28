@@ -44,9 +44,7 @@ The following command can be used to install the plugin in Homebridge:
 npm install -g homebridge-slide-shutter
 ```
 
-After installing
-
-After that you will need to enter the following details into the ~/.homebridge/config.json:
+After installing you will need to enter the following details into the ~/.homebridge/config.json:
 
 ```JSON
 {
