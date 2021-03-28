@@ -35,7 +35,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
   public accessToken;
 
   private devices;
-  private loginPromise;
+  // private loginPromise;
 
   constructor(
     public readonly log: Logger,
