@@ -49,8 +49,14 @@
     "ts-node": "^9.1.1",
     "typescript": "^4.2.3"
   },
-  "funding": {
-    "type": "paypal",
-    "url": "https://www.paypal.me/smuldersbram/EUR"
-  }
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://www.github.com/sponsors/bramsmulders"
+    },
+    {
+      "type": "paypal",
+      "url": "https://www.paypal.me/smuldersbram/EUR"
+    }
+  ]
 }
