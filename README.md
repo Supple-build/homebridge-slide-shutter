@@ -5,17 +5,17 @@
 
 </p>
 
-<span align="center">
+<p align="center">
 
 # Homebridge Slide Shutter
 
-[![Downloads](https://img.shields.io/npm/dt/homebridge-slide-shutter)](https://www.npmjs.com/package/homebridge-slide-shutter)
+[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins) [![Downloads](https://img.shields.io/npm/dt/homebridge-slide-shutter)](https://www.npmjs.com/package/homebridge-slide-shutter)
 [![Version](https://img.shields.io/npm/v/homebridge-slide-shutter)](https://www.npmjs.com/package/homebridge-slide-shutter)
 
 [![GitHub issues](https://img.shields.io/github/issues/bram-is/homebridge-slide-shutter)](https://github.com/bram-is/homebridge-slide-shutter/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/bram-is/homebridge-slide-shutter)](https://github.com/bram-is/homebridge-slide-shutter/pulls)
 
-</span>
+</p>
 
 
 ## Homebridge plugin for [Slide](https://nl.slide.store/) by Innovation in Motion.
