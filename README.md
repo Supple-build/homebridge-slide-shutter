@@ -5,7 +5,7 @@
 
 </p>
 
-<p align="center">
+<div align="center">
 
 # Homebridge Slide Shutter
 
@@ -15,7 +15,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/bram-is/homebridge-slide-shutter)](https://github.com/bram-is/homebridge-slide-shutter/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/bram-is/homebridge-slide-shutter)](https://github.com/bram-is/homebridge-slide-shutter/pulls)
 
-</p>
+</div>
 
 
 ## Homebridge plugin for [Slide](https://nl.slide.store/) by Innovation in Motion.
