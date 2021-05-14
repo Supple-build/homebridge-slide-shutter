@@ -38,8 +38,8 @@ type parameters = {
 
 export class SlidePlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
-  public readonly Characteristic: typeof Characteristic = this.api.hap
-    .Characteristic;
+  public readonly Characteristic: typeof Characteristic =
+    this.api.hap.Characteristic;
 
   // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
@@ -107,7 +107,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
           tolerance: null,
         });
       });
-      this.log.debug('==== devices', devices);
+      this.log.debug('Remote devices', devices);
       this.registerDevices(devices);
     } else {
       this.log.info('No Slides found on your Slide account');
@@ -134,7 +134,7 @@ export class SlidePlatform implements DynamicPlatformPlugin {
   registerDevices(devices: device[]) {
     for (const device of devices) {
       const uuid = this.api.hap.uuid.generate(
-        `${device.code || device['device_id']}`,
+        `${device.code || device.deviceId}`,
       );
 
       const existingAccessory = this.accessories.find(
