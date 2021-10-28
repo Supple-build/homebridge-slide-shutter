@@ -2,7 +2,7 @@
   "private": false,
   "displayName": "Slide Shutter",
   "name": "homebridge-slide-shutter",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "Homebridge plugin for Slide by Innovation in Motion.",
   "author": "Bram Smulders <source@bram.is>",
   "license": "Apache-2.0",
@@ -39,14 +39,14 @@
     "request-promise": "^4.2.6"
   },
   "devDependencies": {
-    "@types/node": "^16.11.0",
-    "@typescript-eslint/eslint-plugin": "^5.0.0",
-    "@typescript-eslint/parser": "^5.0.0",
-    "eslint": "^8.0.1",
+    "@types/node": "^16.11.6",
+    "@typescript-eslint/eslint-plugin": "^5.2.0",
+    "@typescript-eslint/parser": "^5.2.0",
+    "eslint": "^8.1.0",
     "homebridge": "^1.3.5",
-    "nodemon": "^2.0.13",
+    "nodemon": "^2.0.14",
     "rimraf": "^3.0.2",
-    "ts-node": "^10.3.0",
+    "ts-node": "^10.4.0",
     "typescript": "^4.4.4"
   },
   "funding": [
