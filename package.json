@@ -2,7 +2,7 @@
   "private": false,
   "displayName": "Slide Shutter",
   "name": "homebridge-slide-shutter",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Homebridge plugin for Slide by Innovation in Motion.",
   "author": "Bram Smulders <source@bram.is>",
   "license": "Apache-2.0",
