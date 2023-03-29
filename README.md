@@ -7,7 +7,7 @@
 
 <div align="center">
 
-# Homebridge Slide Shutter
+# Homebridge Slide Shutter (Archived)
 
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins) [![Downloads](https://img.shields.io/npm/dt/homebridge-slide-shutter)](https://www.npmjs.com/package/homebridge-slide-shutter)
 [![Version](https://img.shields.io/npm/v/homebridge-slide-shutter)](https://www.npmjs.com/package/homebridge-slide-shutter)
@@ -19,6 +19,8 @@
 
 
 ## Homebridge plugin for [Slide](https://nl.slide.store/) by Innovation in Motion.
+
+**Note**: This plugin is archived since the Slide supports native HomeKit now!
 
 Made by Bram Smulders ([bram.is](https://bram.is)).
 
